@@ -6,35 +6,19 @@
     <title>OpenThread network discovery tool</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@6.5.95/css/materialdesignicons.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js" integrity="sha512-E8QSvWZ0eCLGk4km3hxSsNmGWbLtSCSUcewDQPQWZF6pEU8GlT8a5fF32wOl1i8ftdMhssTrF/OhyGWwonTcXA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script src="https://code.jquery.com/jquery-3.6.3.min.js" integrity="sha256-pvPw+upLPUjgMXY0G+8O0xUf+/Im1MZjXxxgOcBQBXU=" crossorigin="anonymous"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/datejs/1.0/date.min.js" integrity="sha512-/n/dTQBO8lHzqqgAQvy0ukBQ0qLmGzxKhn8xKrz4cn7XJkZzy+fAtzjnOQd5w55h4k1kUC+8oIe6WmrGUYwODA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.6.1/socket.io.js" integrity="sha512-xbQU0+iHqhVt7VIXi6vBJKPh3IQBF5B84sSHdjKiSccyX/1ZI7Vnkt2/8y8uruj63/DVmCxfUNohPNruthTEQA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
-    <script src="https://unpkg.com/konva@9/konva.min.js"></script>
+    <!--<script src="https://unpkg.com/konva@9/konva.min.js"></script>-->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/konva/9.0.0/konva.min.js" integrity="sha512-GudH1MCIMVrKB1dakq90FpGmtWH3PLL2nDj8zbAhkc3FaAmakwlIZYJPfvSDemUk3wIzJIWxDCSXy31ExW6iDg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     <script type="text/javascript" src="static/drawing.js"></script>
     <!--<script type="text/javascript" src="js/interface.js"></script>-->
     <!--<script type="text/javascript" src="js/timespan.js"></script>-->
   </head>
   <body>
-    <script>
-      $(document).ready(function(){
-        draw_base()
-      });
-
-    </script>
-
-    <section class="section">
-      <div class="container">
-        <h1 class="title">
-          Configuration
-        </h1>
-        <p class="subtitle">
-          My first website with <strong>Bulma</strong>!
-        </p>
-      </div>
-    </section>
-    <div id="canvans_container"></div>
-
-
+  {% block content %}
+  {% endblock %}
   </body>
 </html>

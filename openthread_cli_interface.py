@@ -2,6 +2,7 @@ import time
 import logging
 import serial
 from serial import Serial
+import serial.tools.list_ports
 from dataclasses import dataclass
 from enum import IntEnum
 
@@ -171,6 +172,8 @@ class ThreadNode:
     Class describing a thread node
     """
     label: str
+    x_pos: float
+    y_pos: float
     rloc16: int
     extended_address: bytes
     router: bool
@@ -201,13 +204,9 @@ class OTCommunicator:
     Class to manage serial communication and basic network services with the Openthread CLI board.
     """
 
-    def __init__(self, serial_port: str):
-        self.ser = Serial(port=serial_port, baudrate=115200, parity=serial.PARITY_NONE, bytesize=serial.EIGHTBITS,
-                   stopbits=serial.STOPBITS_ONE, timeout=2, xonxoff=False, rtscts=True, dsrdtr=True, writeTimeout=1)
-        self.ser.rts = True
-        self.ser.dtr = True
-        self.ser.flushInput()
-
+    def __init__(self):
+        self.ser: Serial = None
+        self.port: str = 'COM9'
         self.receiver_state = ''
         self.thread_state = 'disabled'
         self.mleid_ipaddr: str = ''
@@ -216,6 +215,23 @@ class OTCommunicator:
         self.TLVs: dict[str, dict[TLVTypes, TLV]] = {}
         self.net_diag_ip: str = ''
         self.nodes: dict[str, ThreadNode] = {}
+
+    def open(self, port: str):
+        self.port = port
+        self.ser: Serial = Serial(port=self.port, baudrate=115200, parity=serial.PARITY_NONE, bytesize=serial.EIGHTBITS,
+                   stopbits=serial.STOPBITS_ONE, timeout=5, xonxoff=False, rtscts=True, dsrdtr=True, writeTimeout=1)
+        self.ser.rts = True
+        self.ser.dtr = True
+        self.ser.flushInput()
+        self.ser.flushOutput()
+
+    def close(self):
+        self.ser.close()
+
+    @staticmethod
+    def get_port_list() -> list[str]:
+        ports = serial.tools.list_ports.comports()
+        return [port for port, _, _ in ports]
 
     def _parse_incoming_data(self, data: str) -> bool:
         """
@@ -294,8 +310,9 @@ class OTCommunicator:
         :return: None
         """
         # Join the Thread network
-        if full_init:
-            self._send_command('state')
+        self._send_command('state')
+
+        if self.thread_state == 'detached' or self.thread_state == 'disabled':
             self._send_command('thread stop')
             self._send_command(f'channel {channel}')
             self._send_command(f'panid 0x{pan_id:04x}')

@@ -1,3 +1,65 @@
 {% extends 'base.html' %}
 {% block content %}
+    <script>
+      $(document).ready(function(){
+        draw_base()
+      });
+
+      function connect(){
+          let comport = $('#port').val()
+          $.ajax(`/connect/${comport}`).done(function(data){
+              let parsed = JSON.parse(data);
+              populate_diagram(parsed);
+          });
+
+      }
+
+      function disconnect(){
+          $.ajax('/disconnect')
+      }
+
+      function scan_network(){
+          let comport = $('#port').val()
+          $.ajax(`/scan`).done(function(data){
+              let parsed = JSON.parse(data);
+              populate_diagram(parsed);
+          });
+      }
+
+      function scan_results(){
+          $.ajax('/scan_results').done(function(data){
+              let parsed = JSON.parse(data);
+              populate_diagram(parsed);
+          });
+      }
+
+    </script>
+    <select id="port" name="port">
+    {% for p in ports %}
+        <option value="{{p}}">{{p}}</option>
+    {% endfor %}
+    </select>
+    <button onclick="connect()">Connect</button>
+    <button onclick="disconnect()">Disconnect</button>
+    <button onclick="scan_network()">Scan</button>
+    <button onclick="scan_results()">Get results</button>
+    <button onclick="draw_links()">Draw links</button>
+
+    <div id="canvans_container"></div>
+    <table>
+        <tbody>
+        <tr><th>Id</th><td><input type="text" id="router_id"></td></tr>
+
+        <tr><th>ExtAddr</th><td><input type="text" id="extended_address"></td></tr>
+        <tr><th>Label</th><td><input type="text" id="label"></td></tr>
+        <tr><th>X</th><td><input type="text" id="x_pos"></td></tr>
+        <tr><th>Y</th><td><input type="text" id="y_pos"></td></tr>
+        <tr><td colspan="2"><button onclick="save_properties()">Salva</button></td> </tr>
+        </tbody>
+    </table>
+    <input type="hidden" id="node_id">
+
+
+
+
 {% endblock %}

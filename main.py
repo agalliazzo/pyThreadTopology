@@ -48,18 +48,8 @@ class ThreadNode:
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-
+    logging.basicConfig(level=logging.DEBUG, format='%(name)s - %(levelname)s - %(message)s')
     run()
 
-    logging.basicConfig(level=logging.INFO, format='%(name)s - %(levelname)s - %(message)s')
 
-    OTComm = OTCommunicator('COM9')
-    OTComm.initialize_communication(0x1234, '00112233445566778899aabbccddeeff', 26)
-    OTComm.query_routers()
-    OTComm.build_nodes_from_tlvs()
-    #pprint(OTComm.nodes)
-    pprint(jsonpickle.encode(OTComm.nodes), indent=2)
-    #for tlv in OTComm.TLVs:
-    #pprint(OTComm.TLVs)
-    #OTComm.get_diag_info()
 
