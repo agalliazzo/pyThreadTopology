@@ -1,3 +1,5 @@
+import json
+from json import JSONEncoder
 import time
 import logging
 import serial
@@ -5,6 +7,16 @@ from serial import Serial
 import serial.tools.list_ports
 from dataclasses import dataclass
 from enum import IntEnum
+from typing import Any
+
+class myEncoder(JSONEncoder):
+    def default(self, o: Any) -> str:
+        if isinstance(o, dict):
+            return o
+        if isinstance(o, bytearray or bytes):
+            return o.hex()
+        return o.__dict__
+
 
 class TLVTypes(IntEnum):
     """
@@ -96,6 +108,10 @@ class TLV:
             out_bytes += bytes.fromhex(self.data[i:i+2].decode('utf-8'))
 
         return out_bytes
+
+    @property
+    def ext_address_str(self) -> str:
+        return self.ext_address.hex()
 
     @property
     def rloc16(self) -> int:
@@ -215,6 +231,7 @@ class OTCommunicator:
         self.TLVs: dict[str, dict[TLVTypes, TLV]] = {}
         self.net_diag_ip: str = ''
         self.nodes: dict[str, ThreadNode] = {}
+        self.file_objects: dict[str, object] = {}
 
     def open(self, port: str):
         self.port = port
@@ -294,7 +311,10 @@ class OTCommunicator:
         self.receiver_state = ''
         while True:
             ret = self.ser.read_until(b'\n')
-            if ret == '':
+            if ret == b'':
+                self._netdiag_timeout = self._netdiag_timeout + 1
+                if self._netdiag_timeout > 3:
+                    return
                 continue
             logging.debug(f'<=={ret}')
             if self._parse_incoming_data(ret.decode('utf-8')):
@@ -309,6 +329,10 @@ class OTCommunicator:
         :param channel: Channel to use on a full reset
         :return: None
         """
+
+        # Load JSON file for nodes
+        self.load_configuration()
+
         # Join the Thread network
         self._send_command('state')
 
@@ -326,7 +350,7 @@ class OTCommunicator:
             if self.thread_state == 'child':
                 self._send_command('state router')
 
-            if self.thread_state == 'router':
+            if self.thread_state == 'router' or self.thread_state == 'leader':
                 break
             time.sleep(1)
 
@@ -360,6 +384,7 @@ class OTCommunicator:
         :return: None
         """
         rloc16 = self.rloc16 if rloc16 is None else rloc16
+        self._netdiag_timeout = 0
         self._send_command(f'networkdiagnostic get {self._get_multicast_mleid(rloc16)} 0 1 5 6 16')
 
     def query_routers(self):
@@ -367,6 +392,7 @@ class OTCommunicator:
         Query all the discovered router for network diagnostics
         :return:
         """
+        self.load_configuration()
         logging.info("Starting to query each router for network diagnostic information ")
         for router in self.routers_id:
             logging.info("Querying router %#2x", router)
@@ -379,17 +405,35 @@ class OTCommunicator:
         :return: None
         """
         logging.info("Staring building nodes from received TLVs")
+
         for ip_addr, tlvs in self.TLVs.items():
-            node = ThreadNode()
+            ext_addr_str = tlvs[TLVTypes.ExtAddress].ext_address_str
+            node = ThreadNode() if ext_addr_str not in self.nodes else self.nodes[ext_addr_str]
+
+            if ext_addr_str in self.file_objects:
+                fo: dict[str, object] = self.file_objects[ext_addr_str]
+                node.label = fo['label']
+                node.x_pos = fo['x_pos'] if 'x_pos' in fo else None
+                node.y_pos = fo['y_pos'] if 'y_pos' in fo else None
+
             node.extended_address = tlvs[TLVTypes.ExtAddress].ext_address
             node.rloc16 = tlvs[TLVTypes.RLOC16].rloc16
             node.router = tlvs[TLVTypes.RLOC16].is_router
             node.router_id = tlvs[TLVTypes.RLOC16].router_id if node.router else 0
-            node.label = ''
             node.route_data = tlvs[TLVTypes.RouteData].route_data
             node.leader_data = tlvs[TLVTypes.LeaderData].leader_data
             node.children = tlvs[TLVTypes.ChildTable].child_table
-            self.nodes[ip_addr] = node
+            self.nodes[ext_addr_str] = node
         logging.info("Node build")
+        self.save_configuration()
 
+    def load_configuration(self):
+        with open('nodes.json', 'r') as f:
+            try:
+                self.file_objects = json.load(f)
+            except json.JSONDecodeError:
+                pass
 
+    def save_configuration(self):
+        with open('nodes.json', 'w') as f:
+            f.write(json.dumps(self.nodes, cls=myEncoder, indent=4))

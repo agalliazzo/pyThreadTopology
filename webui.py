@@ -4,18 +4,10 @@ import flask
 from flask_socketio import SocketIO
 from flask_sqlalchemy import SQLAlchemy
 from flask_sqlalchemy.model import Model
-from openthread_cli_interface import OTCommunicator
+from openthread_cli_interface import OTCommunicator, myEncoder
 import json
 from json import JSONEncoder
 from typing import Any
-
-class myEncoder(JSONEncoder):
-    def default(self, o: Any) -> str:
-        if isinstance(o, dict):
-            return o
-        if isinstance(o, bytearray or bytes):
-            return o.hex()
-        return o.__dict__
 
 app = flask.Flask(__name__)
 app.config['TEMPLATES_AUTO_RELOAD'] = True
@@ -83,9 +75,12 @@ def update_node(node_id):
         if node.router_id != node_id:
             continue
         node.label = data['Label']
+        node.x_pos = data['x_pos']
+        node.y_pos = data['y_pos']
 
+    comm.save_configuration()
     return ''
-    pass
+
 
 def run(blocking: bool = True) -> None:
     if blocking:
