@@ -9,6 +9,8 @@ as a router and send diagnostic request to the network.
 The UI is served as an html page with canvas. 
 To open the UI, after starting the software, visit http://127.0.0.1:5001
 
+![The WebGUI](doc/img.png " The WebGUI")
+
 **Please note UI is based on FLASK package and it is not meant to be published in production environments!!! Keep the link
 in your local network! Publishing the webserver to the internet may result in security risks!**  
 
