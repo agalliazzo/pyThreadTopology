@@ -355,9 +355,6 @@ class OTCommunicator:
             time.sleep(1)
 
         #Get some infos about this node
-        self._send_command('rloc16')
-        self._send_command('router list')
-        self._send_command('ipaddr mleid')
 
     @staticmethod
     def router_id_to_rloc(router_id: int) -> int:
@@ -393,6 +390,10 @@ class OTCommunicator:
         :return:
         """
         self.load_configuration()
+        logging.info('Reading basic network data like RLOC, router list and ipaddr')
+        self._send_command('rloc16')
+        self._send_command('router list')
+        self._send_command('ipaddr mleid')
         logging.info("Starting to query each router for network diagnostic information ")
         for router in self.routers_id:
             logging.info("Querying router %#2x", router)
