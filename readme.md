@@ -15,6 +15,11 @@ To open the UI, after starting the software, visit http://127.0.0.1:5001
 in your local network! Publishing the webserver to the internet may result in security risks!**  
 
 ## ToDo:
+- General
+  - [ ] As pointed out in https://github.com/openthread/openthread/discussions/9015 there is a new module used exactly to 
+   discover the topology. I choose not to use that due to the missing support by my boards (and, of course, also my BR should be updated).
+   An idea can be to have multiple options for network discovery: A legacy one based on `networkdiagnostic` and a new one based on `meshdiag topology`
+
 - Python backend
   - [x] Populate nodes for children too
   - [ ] Implement the capability to use the Boarder router ot-ctl in some way
