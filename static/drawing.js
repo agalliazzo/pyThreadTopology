@@ -1,10 +1,12 @@
-const icon_radius = 20;
-let nodes_layer;
 const screen_width = 1024;
 const screen_height = 500;
-let leader_ext_addr = '';
+const icon_radius = 20;
+const icon_edges = 5;
 const text_color = 'rgba(255,255,255,1)';
 const background_color = 'rgba(0, 0 ,0, 1)'
+
+let nodes_layer;
+let leader_ext_addr = '';
 
 const selectionRect = new Konva.Rect({
   stroke: 'red',
@@ -32,7 +34,7 @@ function draw_router(layer, x, y, node){
         let hexagon = new Konva.RegularPolygon({
             x: 0,
             y: 0,
-            sides: 6,
+            sides: icon_edges,
             radius: icon_radius,
             fill: color,
             draggable: false
