@@ -8,13 +8,19 @@ import serial.tools.list_ports
 from dataclasses import dataclass
 from enum import IntEnum
 from typing import Any
+from datetime import datetime
+
+NODE_TIMEOUT_SECONDS: int = 120
 
 class myEncoder(JSONEncoder):
     def default(self, o: Any) -> str:
         if isinstance(o, dict):
             return o
-        if isinstance(o, bytearray or bytes):
+        if isinstance(o, (bytearray,  bytes)) :
             return o.hex()
+        if isinstance(o, datetime):
+            return o.timetuple()
+
         return o.__dict__
 
 
@@ -166,7 +172,7 @@ class TLV:
 
         children: dict[int, ChildData] = {}
 
-        for i in range(0, self.len, 6):
+        for i in range(0, self.len*2, 6):
             subs = self.data[i:(i+6)]
             child_data = int(subs, 16)
             timeout = (child_data >> 19) & 0x1f
@@ -195,12 +201,22 @@ class ThreadNode:
     router: bool
     route_data: dict[int, RouteData]
     leader_data: LeaderData
-    children: dict[int, 'ThreadNode']
+    children: dict[int, ChildData]
     router_id: int
+    last_seen: datetime
+    node_type: str
 
     def __init__(self):
         self.router_id = 0
+        self.route_data = {}
         pass
+
+    def update_node(self):
+        self.last_seen = datetime.now()
+
+    @property
+    def time_since_contact(self):
+        return (datetime.now() - self.last_seen).total_seconds()
 
     def __str__(self) -> str:
         """
@@ -395,9 +411,28 @@ class OTCommunicator:
         self._send_command('router list')
         self._send_command('ipaddr mleid')
         logging.info("Starting to query each router for network diagnostic information ")
+        self.TLVs = {}
         for router in self.routers_id:
             logging.info("Querying router %#2x", router)
             self.get_diag_info(self.router_id_to_rloc(router))
+
+    def create_children_nodes(self, node: ThreadNode):
+        for child_id, child in node.children.items():
+            child_rloc = f'{node.rloc16 | child_id}'
+            if child_rloc not in self.nodes:
+                self.nodes[child_rloc] = ThreadNode()
+            child_node = self.nodes[child_rloc]
+            child_node.node_type = 'child'
+            child_node.route_data[node.router_id] = RouteData(node.router_id, 3, 3, 1)
+            child_node.update_node()
+            child_node.rloc16 = node.rloc16 | child_id
+            child_node.extended_address = child_node.rloc16.to_bytes(2, 'little')
+            child_node.router = False
+            child_node.leader_data = node.leader_data
+            child_node.children = {}
+            child_node.router_id = child_node.rloc16
+
+        pass
 
     def build_nodes_from_tlvs(self) -> None:
         """
@@ -410,10 +445,11 @@ class OTCommunicator:
         for ip_addr, tlvs in self.TLVs.items():
             ext_addr_str = tlvs[TLVTypes.ExtAddress].ext_address_str
             node = ThreadNode() if ext_addr_str not in self.nodes else self.nodes[ext_addr_str]
+            node.update_node()
 
             if ext_addr_str in self.file_objects:
                 fo: dict[str, object] = self.file_objects[ext_addr_str]
-                node.label = fo['label']
+                node.label = fo['label'] if 'label' in fo else ''
                 node.x_pos = fo['x_pos'] if 'x_pos' in fo else None
                 node.y_pos = fo['y_pos'] if 'y_pos' in fo else None
 
@@ -424,9 +460,21 @@ class OTCommunicator:
             node.route_data = tlvs[TLVTypes.RouteData].route_data
             node.leader_data = tlvs[TLVTypes.LeaderData].leader_data
             node.children = tlvs[TLVTypes.ChildTable].child_table
+            node.node_type = 'router'
             self.nodes[ext_addr_str] = node
+            self.create_children_nodes(node)
+
         logging.info("Node build")
         self.save_configuration()
+
+        nodes_to_be_deleted = []
+
+        for addr, node in self.nodes.items():
+            if node.time_since_contact > NODE_TIMEOUT_SECONDS:
+                nodes_to_be_deleted.append(addr)
+        for node_key in nodes_to_be_deleted:
+            self.nodes.pop(node_key)
+
 
     def load_configuration(self):
         with open('nodes.json', 'r') as f:

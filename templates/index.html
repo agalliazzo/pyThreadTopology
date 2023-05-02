@@ -41,7 +41,7 @@
     </select>
     <button onclick="connect()">Connect</button>
     <button onclick="disconnect()">Disconnect</button>
-    <button onclick="scan_network()">Scan</button>
+    <button onclick="scan_network()">Scan and get results</button>
     <button onclick="scan_results()">Get results</button>
     <button onclick="draw_links()">Draw links</button>
 
@@ -49,12 +49,11 @@
     <table>
         <tbody>
         <tr><th>Id</th><td><input type="text" id="router_id"></td></tr>
-
         <tr><th>ExtAddr</th><td><input type="text" id="extended_address"></td></tr>
         <tr><th>Label</th><td><input type="text" id="label"></td></tr>
         <tr><th>X</th><td><input type="text" id="x_pos"></td></tr>
         <tr><th>Y</th><td><input type="text" id="y_pos"></td></tr>
-        <tr><td colspan="2"><button onclick="save_properties()">Salva</button></td> </tr>
+        <tr><td colspan="2"><button onclick="save_properties()">Save</button></td> </tr>
         </tbody>
     </table>
     <input type="hidden" id="node_id">

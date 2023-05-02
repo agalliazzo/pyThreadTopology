@@ -14,12 +14,12 @@ in your local network! Publishing the webserver to the internet may result in se
 
 ## ToDo:
 - Python backend
-  - [ ] Populate nodes for children too
+  - [x] Populate nodes for children too
   - [ ] Implement the capability to use the Boarder router ot-ctl in some way
   - [ ] Set up a DB to manage the objects, actually we are writing a JSON file that is useful at the beginning but once node start to increase it can be slow
   - [ ] Separate UI thread and communication thread
   - [ ] Add an auto-refresh feature
-  - [ ] Make node expire
+  - [x] Make node expire - Node has a defult expiration time of 120s
   - [ ] Format python logging with date and time
 
 - Frontend
@@ -27,6 +27,7 @@ in your local network! Publishing the webserver to the internet may result in se
   - [ ] Implement the capability to use SVG as background
   - [ ] Implement PNG icons for devices based on the DB implemented in the backend
   - [ ] Remove expired nodes
+  - [x] Shade node based on the last time the node was seen in a scan. This help to better see how "old" data is.
 
 
 

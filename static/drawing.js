@@ -14,11 +14,28 @@ const selectionRect = new Konva.Rect({
   listening: false
 });
 
-function draw_router(layer, x, y, node){
-    color = (node.ExtendedAddress == leader_ext_addr) ? 'rgba(255,120,10,1)' : 'rgba(0, 120, 255, 1)';
+function draw_node(layer, x, y, node){
+    let now = Date.now();
+    let last_seen_ms = node.LastSeen.getTime();
+    let elapsed_seconds_since_seen = (now - last_seen_ms) / 1000;
+    let alpha = Math.max(.2, 1-(elapsed_seconds_since_seen/120));
+    let color;
 
+    if(node.NodeType == 'router'){
+         color = (node.ExtendedAddress == leader_ext_addr) ? `rgba(255,120,10, ${alpha})` : `rgba(0, 120, 255, ${alpha})`;
+    }else{
+         color = `rgba(120,120,120, ${alpha})`;
+    }
 
     if (node.UiElement !== undefined){
+        let group = node.UiElement;
+
+        let shape = group.getChildren((node) => {return node.name() === 'Shape';});
+        if (shape.length != 0){
+            shape = shape[0];
+            shape.fill(color);
+        }
+
         return node.UiElement;
     }else{
         let group = new Konva.Group({
@@ -30,17 +47,31 @@ function draw_router(layer, x, y, node){
             strokeWidth: 1,
             draggable: true,
         });
+        let node_shape;
 
-        let hexagon = new Konva.RegularPolygon({
-            x: 0,
-            y: 0,
-            sides: icon_edges,
-            radius: icon_radius,
-            fill: color,
-            draggable: false
-          });
+        if (node.NodeType == 'router'){
+            node_shape = new Konva.RegularPolygon({
+                x: 0,
+                y: 0,
+                sides: icon_edges,
+                radius: icon_radius,
+                fill: color,
+                draggable: false,
+                name: 'Shape'
+              });
+        }else{
+            node_shape = new Konva.Circle({
+                x: 0,
+                y: 0,
+                radius: icon_radius - 3,
+                fill: color,
+                draggable: false,
+                name: 'Shape'
+              });
+        }
 
-        let text = new Konva.Text({
+
+        let ext_address_label = new Konva.Text({
             text: node.ExtendedAddress,
             x: -70,
             y: icon_radius,
@@ -52,7 +83,7 @@ function draw_router(layer, x, y, node){
             draggable: false,
             visible: false
         });
-        let text2 = new Konva.Text({
+        let node_id = new Konva.Text({
             text: node.RouterId,
             x: -70,
             y: -7,
@@ -64,7 +95,7 @@ function draw_router(layer, x, y, node){
         });
 
         if (node.Label !== undefined){
-            let text3 = new Konva.Text({
+            let node_label = new Konva.Text({
                 text: node.Label,
                 x: -70,
                 y: -icon_radius-15,
@@ -74,20 +105,23 @@ function draw_router(layer, x, y, node){
                 align: 'center',
                 draggable: false
             });
-            group.add(text3);
+            group.add(node_label);
         }
 
         group.on('mouseenter', () => {
-           text.visible(true);
-           $('#router_id').val(node.RouterId);
+           ext_address_label.visible(true);
+           /*
+           $('#node_id').val(node.RouterId);
            $('#extended_address').val(node.ExtendedAddress);
            $('#x_pos').val(group.getAttr('x'));
            $('#y_pos').val(group.getAttr('y'));
            $('#label').val(node.Label === undefined ? '' : node.Label);
            $('#node_id').val(node.RouterId);
+
+            */
         });
         group.on('mouseleave', () => {
-           text.visible(false);
+           ext_address_label.visible(false);
         });
 
 
@@ -97,16 +131,15 @@ function draw_router(layer, x, y, node){
            $('#x_pos').val(group.getAttr('x'));
            $('#y_pos').val(group.getAttr('y'));
            $('#label').val(node.Label === undefined ? '' : node.Label);
-           $('#node_id').val(node.RouterId);
         });
 
         group.on('dragmove', function(e){
            draw_links();
         });
 
-        group.add(hexagon);
-        group.add(text);
-        group.add(text2);
+        group.add(node_shape);
+        group.add(ext_address_label);
+        group.add(node_id);
         layer.add(group);
         return group;
     }
@@ -118,7 +151,7 @@ function draw_child(layer, x, y){
         x: x,
         y: y,
         radius: icon_radius,
-        stroke: 'black',
+        stroke: 'gray',
         strokeWidth: 2,
         draggable: true
     });
@@ -251,7 +284,8 @@ function create_nodes(data){
         node.Type = 'Router';
         node.x_pos = parseFloat(value.x_pos);
         node.y_pos = parseFloat(value.y_pos);
-
+        node.LastSeen = new Date(value.last_seen[0], value.last_seen[1]-1, value.last_seen[2], value.last_seen[3], value.last_seen[4], value.last_seen[5], 0);
+        node.NodeType = value.node_type;
         nodes[node.RouterId] = node;
     }
 }
@@ -426,7 +460,7 @@ function populate_diagram(data){
         if(node.y_pos === undefined || node.y_pos === null || isNaN(node.y_pos))
             node.y_pos = y;
 
-        node.UiElement = draw_router(nodes_layer, node.x_pos, node.y_pos, node);
+        node.UiElement = draw_node(nodes_layer, node.x_pos, node.y_pos, node);
 
         x += 100;
         if (x > 450){
